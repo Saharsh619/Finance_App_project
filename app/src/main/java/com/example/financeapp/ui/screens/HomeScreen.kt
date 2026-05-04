@@ -20,12 +20,15 @@ import com.example.financeapp.ui.viewmodels.FinanceViewModel
 fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
 
     val state by vm.uiState.collectAsStateWithLifecycle()
+
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var selectedCategoryId by remember {
+        mutableLongStateOf(state.categories.firstOrNull()?.id ?: 1L)
+    }
 
     val monthlyTotal = state.transactions.sumOf { it.amount }
 
-    // ✅ Category → PieSlice (BEST VERSION)
     val categoriesById = state.categories.associateBy { it.id }
 
     val categoryTotals = state.transactions
@@ -40,7 +43,6 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
         }
         .sortedByDescending { it.amount }
 
-    // Charts data
     val recent = state.transactions.sortedBy { it.date }.takeLast(10)
 
     val monthGroups = state.transactions
@@ -76,15 +78,35 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             )
         }
 
+        // ✅ Category selection (kept from codex)
+        Text("Category", style = MaterialTheme.typography.labelLarge)
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            state.categories.take(5).forEach { category ->
+                AssistChip(
+                    onClick = { selectedCategoryId = category.id },
+                    label = { Text(category.name) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor =
+                            if (selectedCategoryId == category.id)
+                                colorFromHex(category.colorHex).copy(alpha = 0.25f)
+                            else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
+            }
+        }
+
         Button(
             onClick = {
-                vm.addTransaction(
-                    amount.toDoubleOrNull() ?: 0.0,
-                    1,
-                    note.ifBlank { null }
-                )
-                amount = ""
-                note = ""
+                val parsedAmount = parseAmount(amount)
+                if (parsedAmount > 0) {
+                    vm.addTransaction(parsedAmount, selectedCategoryId, note.ifBlank { null })
+                    amount = ""
+                    note = ""
+                }
             }
         ) {
             Text("Add Expense")
@@ -94,7 +116,7 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             Text("Get Smart Suggestion")
         }
 
-        // 🔥 CHARTS
+        // 🔥 Charts
 
         SimplePieChart(
             entries = categoryTotals,
@@ -108,7 +130,7 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
         )
 
         SimpleBarChart(
-            values = monthGroups.values.map { list -> list.sumOf { it.amount } },
+            values = monthGroups.values.map { it.sumOf { txn -> txn.amount } },
             xLabels = monthGroups.keys.map { it.takeLast(2) },
             title = "Monthly Comparison"
         )
@@ -140,7 +162,11 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
     }
 }
 
-// ✅ Safe color parser
+// ✅ Safe amount parser (kept)
+private fun parseAmount(raw: String): Double =
+    raw.replace(",", "").trim().toDoubleOrNull() ?: 0.0
+
+// ✅ Safe color parser (merged)
 private fun colorFromHex(hex: String?): Color = try {
     if (hex.isNullOrBlank()) Color(0xFF9E9E9E)
     else Color(android.graphics.Color.parseColor(hex))
