@@ -39,8 +39,15 @@ fun SimpleLineChart(values: List<Double>, xLabels: List<String>, title: String) 
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = 4.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(top = 4.dp)
+        ) {
             drawAxes(leftPad, bottomPad)
+
             val plotW = size.width - leftPad - 16f
             val plotH = size.height - bottomPad - 14f
             val stepX = plotW / (safeValues.size - 1).coerceAtLeast(1)
@@ -50,8 +57,13 @@ fun SimpleLineChart(values: List<Double>, xLabels: List<String>, title: String) 
                 Offset(leftPad + idx * stepX, y)
             }
 
-            points.zipWithNext { a, b -> drawLine(Color(0xFF1B8F4A), a, b, strokeWidth = 4f) }
-            points.forEach { drawCircle(Color(0xFF156B38), radius = 4.5f, center = it) }
+            points.zipWithNext { a, b ->
+                drawLine(Color(0xFF1B8F4A), a, b, strokeWidth = 4f)
+            }
+
+            points.forEach {
+                drawCircle(Color(0xFF156B38), radius = 4.5f, center = it)
+            }
 
             val paint = android.graphics.Paint().apply {
                 color = android.graphics.Color.DKGRAY
@@ -88,8 +100,15 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = 4.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(top = 4.dp)
+        ) {
             drawAxes(leftPad, bottomPad)
+
             val plotW = size.width - leftPad - 16f
             val plotH = size.height - bottomPad - 14f
             val slot = plotW / safeValues.size
@@ -104,8 +123,20 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
             safeValues.forEachIndexed { i, value ->
                 val h = ((value / max) * plotH).toFloat()
                 val x = leftPad + i * slot + (slot - barW) / 2
-                drawRect(Color(0xFF2C7BE5), Offset(x, 12f + plotH - h), Size(barW, h), style = Fill)
-                drawContext.canvas.nativeCanvas.drawText(xLabels.getOrElse(i) { "${i + 1}" }, x, size.height - 6f, paint)
+
+                drawRect(
+                    color = Color(0xFF2C7BE5),
+                    topLeft = Offset(x, 12f + plotH - h),
+                    size = Size(barW, h),
+                    style = Fill
+                )
+
+                drawContext.canvas.nativeCanvas.drawText(
+                    xLabels.getOrElse(i) { "${i + 1}" },
+                    x,
+                    size.height - 6f,
+                    paint
+                )
             }
 
             drawContext.canvas.nativeCanvas.drawText("0", 4f, size.height - bottomPad + 8f, paint)
@@ -114,45 +145,52 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
     }
 }
 
-data class PieSlice(val label: String, val amount: Double, val color: Color)
-
 @Composable
-fun SimplePieChart(entries: List<PieSlice>, title: String) {
-    val filtered = entries.filter { it.amount > 0 }
-    if (filtered.isEmpty()) {
+fun SimplePieChart(portions: List<Double>, title: String) {
+    if (portions.isEmpty()) {
         Text("$title: no data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
-    val total = filtered.sumOf { it.amount }
+    val total = portions.sum().takeIf { it > 0 } ?: 1.0
+    val colors = listOf(
+        Color(0xFFFF9800),
+        Color(0xFF4CAF50),
+        Color(0xFF2196F3),
+        Color(0xFF9C27B0)
+    )
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        ) {
             var start = -90f
-            filtered.forEach { slice ->
-                val sweep = ((slice.amount / total) * 360.0).toFloat()
+
+            portions.forEachIndexed { index, value ->
+                val sweep = ((value / total) * 360f).toFloat()
+
                 drawArc(
-                    color = slice.color,
+                    color = colors[index % colors.size],
                     startAngle = start,
                     sweepAngle = sweep,
                     useCenter = true,
                     topLeft = Offset(40f, 10f),
                     size = Size(size.minDimension - 80f, size.minDimension - 20f)
                 )
+
                 start += sweep
             }
+
             drawCircle(
                 color = Color.White,
                 radius = (size.minDimension - 80f) * 0.22f,
                 center = Offset(size.width / 2f, (size.minDimension - 20f) / 2f + 10f),
                 style = Fill
             )
-        }
-
-        filtered.forEachIndexed { index, slice ->
-            val pct = (slice.amount / total) * 100
-            Text("${index + 1}. ${slice.label}: ₹${"%.2f".format(slice.amount)} (${"%.1f".format(pct)}%)")
         }
     }
 }
