@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FinanceDao {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTransaction(transaction: TransactionEntity)
 
@@ -20,7 +21,7 @@ interface FinanceDao {
     fun observeTransactions(): Flow<List<TransactionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertCategory(category: CategoryEntity)
+    suspend fun upsertCategory(category: CategoryEntity): Long
 
     @Update
     suspend fun updateCategory(category: CategoryEntity)

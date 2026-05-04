@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
     kotlin("kapt")
 }
 
@@ -58,7 +59,7 @@ dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.13.1")
 
-    // Lifecycle
+    // Lifecycle (kept all)
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
@@ -80,17 +81,18 @@ dependencies {
     kapt("com.google.dagger:hilt-compiler:2.52")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    // Room (keeping BOTH as per your original merge state)
+    // Room (keeping BOTH ksp + kapt as per your merge request)
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
 
-    // Networking (keeping main version)
+    // Networking (merged safely)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // Kotlin Serialization
+    // Kotlin Serialization (kept stable version)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     // Charts
