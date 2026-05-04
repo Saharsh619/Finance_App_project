@@ -78,7 +78,7 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             )
         }
 
-        // ✅ Category selection (kept from codex)
+        // Category selection
         Text("Category", style = MaterialTheme.typography.labelLarge)
 
         Row(
@@ -116,8 +116,7 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             Text("Get Smart Suggestion")
         }
 
-        // 🔥 Charts
-
+        // Charts
         SimplePieChart(
             entries = categoryTotals,
             title = "Category Distribution"
@@ -135,8 +134,7 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             title = "Monthly Comparison"
         )
 
-        // 🔍 Insights
-
+        // Insights
         Text("Insights", style = MaterialTheme.typography.titleMedium)
 
         state.insights.forEach {
@@ -152,8 +150,7 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             }
         }
 
-        // 📜 Transactions
-
+        // Transactions list
         LazyColumn {
             items(state.transactions) { txn ->
                 Text("₹${"%.2f".format(txn.amount)} • ${txn.date} • ${txn.note ?: "No note"}")
@@ -162,11 +159,10 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
     }
 }
 
-// ✅ Safe amount parser (kept)
+// Helpers
 private fun parseAmount(raw: String): Double =
     raw.replace(",", "").trim().toDoubleOrNull() ?: 0.0
 
-// ✅ Safe color parser (merged)
 private fun colorFromHex(hex: String?): Color = try {
     if (hex.isNullOrBlank()) Color(0xFF9E9E9E)
     else Color(android.graphics.Color.parseColor(hex))

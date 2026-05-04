@@ -165,6 +165,7 @@ fun SimplePieChart(entries: List<PieSlice>, title: String) {
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.size(280.dp)) {
+
                 val diameter = size.minDimension * 0.8f
                 val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
                 val arcSize = Size(diameter, diameter)
