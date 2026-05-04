@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.text.font.FontWeight
@@ -76,7 +77,7 @@ fun SimpleLineChart(values: List<Double>, xLabels: List<String>, title: String) 
                 val y = 12f + plotH - (plotH * i / 4f)
                 val tickValue = max * i / 4
                 drawLine(Color(0xFFE0E0E0), Offset(leftPad, y), Offset(size.width - 8f, y), strokeWidth = 1f)
-                drawContext.canvas.nativeCanvas.drawText("${"%.0f".format(tickValue)}", 4f, y + 6f, paint)
+                drawContext.canvas.nativeCanvas.drawText("%.0f".format(tickValue), 4f, y + 6f, paint)
             }
 
             points.forEachIndexed { i, point ->
@@ -141,7 +142,7 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
             }
 
             drawContext.canvas.nativeCanvas.drawText("0", 4f, size.height - bottomPad + 8f, paint)
-            drawContext.canvas.nativeCanvas.drawText("${"%.0f".format(max)}", 4f, 20f, paint)
+            drawContext.canvas.nativeCanvas.drawText("%.0f".format(max), 4f, 20f, paint)
         }
     }
 }
