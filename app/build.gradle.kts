@@ -75,19 +75,17 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // ✅ Hilt (correct)
+    // Hilt
     implementation("com.google.dagger:hilt-android:2.52")
     kapt("com.google.dagger:hilt-compiler:2.52")
-
-    // Hilt Navigation
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    // ✅ Room (use ONLY kapt, NOT ksp)
+    // Room (keeping BOTH as per your original merge state)
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
 
-    // Networking (FIXED)
+    // Networking (keeping main version)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
