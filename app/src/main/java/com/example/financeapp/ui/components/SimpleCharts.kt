@@ -1,7 +1,10 @@
 package com.example.financeapp.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,7 +14,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
@@ -36,8 +39,15 @@ fun SimpleLineChart(values: List<Double>, xLabels: List<String>, title: String) 
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = 4.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(top = 4.dp)
+        ) {
             drawAxes(leftPad, bottomPad)
+
             val plotW = size.width - leftPad - 16f
             val plotH = size.height - bottomPad - 14f
             val stepX = plotW / (safeValues.size - 1).coerceAtLeast(1)
@@ -47,8 +57,13 @@ fun SimpleLineChart(values: List<Double>, xLabels: List<String>, title: String) 
                 Offset(leftPad + idx * stepX, y)
             }
 
-            points.zipWithNext { a, b -> drawLine(Color(0xFF1B8F4A), a, b, strokeWidth = 4f) }
-            points.forEach { drawCircle(Color(0xFF156B38), radius = 4.5f, center = it) }
+            points.zipWithNext { a, b ->
+                drawLine(Color(0xFF1B8F4A), a, b, strokeWidth = 4f)
+            }
+
+            points.forEach {
+                drawCircle(Color(0xFF156B38), radius = 4.5f, center = it)
+            }
 
             val paint = android.graphics.Paint().apply {
                 color = android.graphics.Color.DKGRAY
@@ -85,11 +100,18 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = 4.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(top = 4.dp)
+        ) {
             drawAxes(leftPad, bottomPad)
+
             val plotW = size.width - leftPad - 16f
             val plotH = size.height - bottomPad - 14f
-            val slot = plotW / safeValues.size.coerceAtLeast(1)
+            val slot = plotW / safeValues.size
             val barW = min(48f, slot * 0.65f)
 
             val paint = android.graphics.Paint().apply {
@@ -101,8 +123,20 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
             safeValues.forEachIndexed { i, value ->
                 val h = ((value / max) * plotH).toFloat()
                 val x = leftPad + i * slot + (slot - barW) / 2
-                drawRect(Color(0xFF2C7BE5), Offset(x, 12f + plotH - h), Size(barW, h), style = Fill)
-                drawContext.canvas.nativeCanvas.drawText(xLabels.getOrElse(i) { "${i + 1}" }, x, size.height - 6f, paint)
+
+                drawRect(
+                    color = Color(0xFF2C7BE5),
+                    topLeft = Offset(x, 12f + plotH - h),
+                    size = Size(barW, h),
+                    style = Fill
+                )
+
+                drawContext.canvas.nativeCanvas.drawText(
+                    xLabels.getOrElse(i) { "${i + 1}" },
+                    x,
+                    size.height - 6f,
+                    paint
+                )
             }
 
             drawContext.canvas.nativeCanvas.drawText("0", 4f, size.height - bottomPad + 8f, paint)
@@ -112,22 +146,33 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
 }
 
 @Composable
-fun SimplePieChart(entries: List<Pair<String, Double>>, title: String) {
-    val filtered = entries.filter { it.second > 0 }
-    if (filtered.isEmpty()) {
+fun SimplePieChart(portions: List<Double>, title: String) {
+    if (portions.isEmpty()) {
         Text("$title: no data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
-    val total = filtered.sumOf { it.second }
-    val colors = listOf(Color(0xFFFF9800), Color(0xFF4CAF50), Color(0xFF2196F3), Color(0xFF9C27B0), Color(0xFFF44336))
+    val total = portions.sum().takeIf { it > 0 } ?: 1.0
+    val colors = listOf(
+        Color(0xFFFF9800),
+        Color(0xFF4CAF50),
+        Color(0xFF2196F3),
+        Color(0xFF9C27B0)
+    )
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        ) {
             var start = -90f
-            filtered.forEachIndexed { index, (_, amount) ->
-                val sweep = ((amount / total) * 360.0).toFloat()
+
+            portions.forEachIndexed { index, value ->
+                val sweep = ((value / total) * 360f).toFloat()
+
                 drawArc(
                     color = colors[index % colors.size],
                     startAngle = start,
@@ -136,19 +181,16 @@ fun SimplePieChart(entries: List<Pair<String, Double>>, title: String) {
                     topLeft = Offset(40f, 10f),
                     size = Size(size.minDimension - 80f, size.minDimension - 20f)
                 )
+
                 start += sweep
             }
+
             drawCircle(
                 color = Color.White,
                 radius = (size.minDimension - 80f) * 0.22f,
                 center = Offset(size.width / 2f, (size.minDimension - 20f) / 2f + 10f),
                 style = Fill
             )
-        }
-
-        filtered.forEachIndexed { index, (label, amount) ->
-            val pct = (amount / total) * 100
-            Text("${index + 1}. $label: ${"%.1f".format(pct)}%")
         }
     }
 }
