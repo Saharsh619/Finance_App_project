@@ -1,6 +1,7 @@
 package com.example.financeapp.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,8 +40,15 @@ fun SimpleLineChart(values: List<Double>, xLabels: List<String>, title: String) 
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = 4.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(top = 4.dp)
+        ) {
             drawAxes(leftPad, bottomPad)
+
             val plotW = size.width - leftPad - 16f
             val plotH = size.height - bottomPad - 14f
             val stepX = plotW / (safeValues.size - 1).coerceAtLeast(1)
@@ -50,8 +58,13 @@ fun SimpleLineChart(values: List<Double>, xLabels: List<String>, title: String) 
                 Offset(leftPad + idx * stepX, y)
             }
 
-            points.zipWithNext { a, b -> drawLine(Color(0xFF1B8F4A), a, b, strokeWidth = 4f) }
-            points.forEach { drawCircle(Color(0xFF156B38), radius = 4.5f, center = it) }
+            points.zipWithNext { a, b ->
+                drawLine(Color(0xFF1B8F4A), a, b, strokeWidth = 4f)
+            }
+
+            points.forEach {
+                drawCircle(Color(0xFF156B38), radius = 4.5f, center = it)
+            }
 
             val paint = android.graphics.Paint().apply {
                 color = android.graphics.Color.DKGRAY
@@ -88,8 +101,15 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
 
     Column {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Canvas(modifier = Modifier.fillMaxWidth().height(180.dp).padding(top = 4.dp)) {
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(top = 4.dp)
+        ) {
             drawAxes(leftPad, bottomPad)
+
             val plotW = size.width - leftPad - 16f
             val plotH = size.height - bottomPad - 14f
             val slot = plotW / safeValues.size
@@ -104,8 +124,20 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
             safeValues.forEachIndexed { i, value ->
                 val h = ((value / max) * plotH).toFloat()
                 val x = leftPad + i * slot + (slot - barW) / 2
-                drawRect(Color(0xFF2C7BE5), Offset(x, 12f + plotH - h), Size(barW, h), style = Fill)
-                drawContext.canvas.nativeCanvas.drawText(xLabels.getOrElse(i) { "${i + 1}" }, x, size.height - 6f, paint)
+
+                drawRect(
+                    color = Color(0xFF2C7BE5),
+                    topLeft = Offset(x, 12f + plotH - h),
+                    size = Size(barW, h),
+                    style = Fill
+                )
+
+                drawContext.canvas.nativeCanvas.drawText(
+                    xLabels.getOrElse(i) { "${i + 1}" },
+                    x,
+                    size.height - 6f,
+                    paint
+                )
             }
 
             drawContext.canvas.nativeCanvas.drawText("0", 4f, size.height - bottomPad + 8f, paint)
@@ -126,16 +158,19 @@ fun SimplePieChart(entries: List<PieSlice>, title: String) {
 
     val total = filtered.sumOf { it.amount }
 
-    Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, fontWeight = FontWeight.SemiBold)
+
         Canvas(modifier = Modifier.fillMaxWidth().height(220.dp)) {
             val diameter = size.minDimension * 0.8f
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             val arcSize = Size(diameter, diameter)
 
             var startAngle = -90f
+
             filtered.forEach { slice ->
                 val sweep = ((slice.amount / total) * 360f).toFloat()
+
                 drawArc(
                     color = slice.color,
                     startAngle = startAngle,
@@ -144,6 +179,7 @@ fun SimplePieChart(entries: List<PieSlice>, title: String) {
                     topLeft = topLeft,
                     size = arcSize
                 )
+
                 startAngle += sweep
             }
 
@@ -156,7 +192,10 @@ fun SimplePieChart(entries: List<PieSlice>, title: String) {
 
         filtered.forEachIndexed { index, slice ->
             val pct = (slice.amount / total) * 100
-            Text("${index + 1}. ${slice.label}: ₹${"%.2f".format(slice.amount)} (${"%.1f".format(pct)}%)", color = slice.color)
+            Text(
+                "${index + 1}. ${slice.label}: ₹${"%.2f".format(slice.amount)} (${"%.1f".format(pct)}%)",
+                color = slice.color
+            )
         }
     }
 }
