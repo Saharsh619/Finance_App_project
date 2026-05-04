@@ -6,9 +6,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.financeapp.ui.components.PieSlice
 import com.example.financeapp.ui.components.SimpleBarChart
 import com.example.financeapp.ui.components.SimpleLineChart
 import com.example.financeapp.ui.components.SimplePieChart
@@ -23,19 +25,24 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
 
     val monthlyTotal = state.transactions.sumOf { it.amount }
 
-    // Category totals (for Pie Chart)
-    val categoryNameMap = state.categories.associate { it.id to it.name }
+    // ✅ Category → PieSlice (BEST VERSION)
+    val categoriesById = state.categories.associateBy { it.id }
 
     val categoryTotals = state.transactions
-        .groupBy { categoryNameMap[it.categoryId] ?: "Unknown" }
-        .mapValues { (_, txns) -> txns.sumOf { it.amount } }
-        .toList()
-        .sortedByDescending { it.second }
+        .groupBy { it.categoryId }
+        .map { (categoryId, txns) ->
+            val category = categoriesById[categoryId]
+            PieSlice(
+                label = category?.name ?: "Unknown",
+                amount = txns.sumOf { it.amount },
+                color = colorFromHex(category?.colorHex)
+            )
+        }
+        .sortedByDescending { it.amount }
 
-    // Recent transactions (Line Chart)
+    // Charts data
     val recent = state.transactions.sortedBy { it.date }.takeLast(10)
 
-    // Monthly grouping (Bar Chart)
     val monthGroups = state.transactions
         .groupBy { "${it.date.year}-${it.date.monthValue.toString().padStart(2, '0')}" }
         .toSortedMap()
@@ -87,10 +94,10 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             Text("Get Smart Suggestion")
         }
 
-        // 🔥 CHARTS SECTION
+        // 🔥 CHARTS
 
         SimplePieChart(
-            portions = categoryTotals.map { it.second },
+            entries = categoryTotals,
             title = "Category Distribution"
         )
 
@@ -105,6 +112,8 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             xLabels = monthGroups.keys.map { it.takeLast(2) },
             title = "Monthly Comparison"
         )
+
+        // 🔍 Insights
 
         Text("Insights", style = MaterialTheme.typography.titleMedium)
 
@@ -121,10 +130,20 @@ fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
             }
         }
 
+        // 📜 Transactions
+
         LazyColumn {
             items(state.transactions) { txn ->
                 Text("₹${"%.2f".format(txn.amount)} • ${txn.date} • ${txn.note ?: "No note"}")
             }
         }
     }
+}
+
+// ✅ Safe color parser
+private fun colorFromHex(hex: String?): Color = try {
+    if (hex.isNullOrBlank()) Color(0xFF9E9E9E)
+    else Color(android.graphics.Color.parseColor(hex))
+} catch (_: Exception) {
+    Color(0xFF9E9E9E)
 }
