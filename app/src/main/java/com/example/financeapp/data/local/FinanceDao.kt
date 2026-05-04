@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FinanceDao {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTransaction(transaction: TransactionEntity)
 

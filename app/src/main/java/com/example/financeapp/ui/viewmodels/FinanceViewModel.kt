@@ -24,6 +24,7 @@ class FinanceViewModel @Inject constructor(
     private val insightsUseCase: GenerateInsightsUseCase,
     private val estimateBudgetUseCase: EstimateBudgetUseCase
 ) : ViewModel() {
+
     private val _uiState = MutableStateFlow(FinanceUiState())
     val uiState: StateFlow<FinanceUiState> = _uiState.asStateFlow()
 
@@ -42,19 +43,47 @@ class FinanceViewModel @Inject constructor(
     }
 
     fun addTransaction(amount: Double, categoryId: Long, note: String?) = viewModelScope.launch {
-        repo.upsertTransaction(Transaction(amount = amount, categoryId = categoryId, date = LocalDate.now(), note = note))
+        repo.upsertTransaction(
+            Transaction(
+                amount = amount,
+                categoryId = categoryId,
+                date = LocalDate.now(),
+                note = note
+            )
+        )
     }
 
-    fun addExpenseWithCategory(amount: Double, categoryName: String, note: String?) = viewModelScope.launch {
-        if (amount <= 0 || categoryName.isBlank()) return@launch
-        val existing = uiState.value.categories.firstOrNull { it.name.equals(categoryName.trim(), ignoreCase = true) }
-        val categoryId = if (existing != null) {
-            existing.id
-        } else {
-            repo.addCategory(Category(name = categoryName.trim(), colorHex = randomCategoryColor(categoryName), isCustom = true))
+    // ✅ KEEP THIS (important feature)
+    fun addExpenseWithCategory(amount: Double, categoryName: String, note: String?) =
+        viewModelScope.launch {
+
+            if (amount <= 0 || categoryName.isBlank()) return@launch
+
+            val existing = uiState.value.categories.firstOrNull {
+                it.name.equals(categoryName.trim(), ignoreCase = true)
+            }
+
+            val categoryId = if (existing != null) {
+                existing.id
+            } else {
+                repo.addCategory(
+                    Category(
+                        name = categoryName.trim(),
+                        colorHex = randomCategoryColor(categoryName),
+                        isCustom = true
+                    )
+                )
+            }
+
+            repo.upsertTransaction(
+                Transaction(
+                    amount = amount,
+                    categoryId = categoryId,
+                    date = LocalDate.now(),
+                    note = note
+                )
+            )
         }
-        repo.upsertTransaction(Transaction(amount = amount, categoryId = categoryId, date = LocalDate.now(), note = note))
-    }
 
     fun addCategory(name: String, colorHex: String) = viewModelScope.launch {
         repo.addCategory(Category(name = name, colorHex = colorHex, isCustom = true))
@@ -62,9 +91,20 @@ class FinanceViewModel @Inject constructor(
 
     fun fetchSmartSuggestion() = viewModelScope.launch {
         val categoryNames = uiState.value.categories.associate { it.id to it.name }
-        val summary = estimateBudgetUseCase.run(repo.getTransactionsForLastMonths(3), categoryNames)
+        val summary = estimateBudgetUseCase.run(
+            repo.getTransactionsForLastMonths(3),
+            categoryNames
+        )
+
         val result = repo.getSmartSuggestion(summary)
-        _uiState.update { it.copy(suggestion = result.getOrElse { _ -> fallbackSuggestion(summary.monthlySpending.average()) }) }
+
+        _uiState.update {
+            it.copy(
+                suggestion = result.getOrElse {
+                    fallbackSuggestion(summary.monthlySpending.average())
+                }
+            )
+        }
     }
 
     private fun fallbackSuggestion(avg: Double) = BudgetSuggestion(
@@ -88,7 +128,11 @@ private val defaultCategories = listOf(
     Category(4, "Shopping", "#9C27B0")
 )
 
+// ✅ KEEP THIS (used in addExpenseWithCategory)
 private fun randomCategoryColor(seed: String): String {
-    val palette = listOf("#3F51B5", "#F44336", "#FF9800", "#4CAF50", "#9C27B0", "#00BCD4")
+    val palette = listOf(
+        "#3F51B5", "#F44336", "#FF9800",
+        "#4CAF50", "#9C27B0", "#00BCD4"
+    )
     return palette[(seed.lowercase().hashCode().absoluteValue) % palette.size]
 }

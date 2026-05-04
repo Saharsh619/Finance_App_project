@@ -19,33 +19,73 @@ class FinanceRepository @Inject constructor(
     private val dao: FinanceDao,
     private val llmService: LLMService
 ) {
-    fun observeTransactions(): Flow<List<Transaction>> = dao.observeTransactions().map { list ->
-        list.map { Transaction(it.id, it.amount, it.categoryId, LocalDate.ofEpochDay(it.epochDay), it.note) }
-    }
 
-    fun observeCategories(): Flow<List<Category>> = dao.observeCategories().map { list ->
-        list.map { Category(it.id, it.name, it.colorHex, it.isCustom) }
-    }
+    fun observeTransactions(): Flow<List<Transaction>> =
+        dao.observeTransactions().map { list ->
+            list.map {
+                Transaction(
+                    it.id,
+                    it.amount,
+                    it.categoryId,
+                    LocalDate.ofEpochDay(it.epochDay),
+                    it.note
+                )
+            }
+        }
 
-    fun observeDashboard() = combine(observeTransactions(), observeCategories()) { txns, cats -> txns to cats }
+    fun observeCategories(): Flow<List<Category>> =
+        dao.observeCategories().map { list ->
+            list.map {
+                Category(it.id, it.name, it.colorHex, it.isCustom)
+            }
+        }
+
+    fun observeDashboard() =
+        combine(observeTransactions(), observeCategories()) { txns, cats ->
+            txns to cats
+        }
 
     suspend fun upsertTransaction(txn: Transaction) {
-        dao.upsertTransaction(TransactionEntity(txn.id, txn.amount, txn.categoryId, txn.date.toEpochDay(), txn.note))
+        dao.upsertTransaction(
+            TransactionEntity(
+                txn.id,
+                txn.amount,
+                txn.categoryId,
+                txn.date.toEpochDay(),
+                txn.note
+            )
+        )
     }
 
+    // ✅ KEEP THIS VERSION
     suspend fun addCategory(category: Category): Long {
-        return dao.upsertCategory(CategoryEntity(category.id, category.name, category.colorHex, category.isCustom))
+        return dao.upsertCategory(
+            CategoryEntity(
+                category.id,
+                category.name,
+                category.colorHex,
+                category.isCustom
+            )
+        )
     }
 
-    suspend fun getSmartSuggestion(summary: SummaryData): Result<BudgetSuggestion> = runCatching {
-        llmService.getBudgetSuggestion(summary)
-    }
+    suspend fun getSmartSuggestion(summary: SummaryData): Result<BudgetSuggestion> =
+        runCatching {
+            llmService.getBudgetSuggestion(summary)
+        }
 
     suspend fun getTransactionsForLastMonths(months: Int): List<List<Transaction>> {
         val ranges = DateUtils.lastNMonthRanges(months)
+
         return ranges.map { (start, end) ->
             dao.transactionsInRange(start.toEpochDay(), end.toEpochDay()).map {
-                Transaction(it.id, it.amount, it.categoryId, LocalDate.ofEpochDay(it.epochDay), it.note)
+                Transaction(
+                    it.id,
+                    it.amount,
+                    it.categoryId,
+                    LocalDate.ofEpochDay(it.epochDay),
+                    it.note
+                )
             }
         }
     }
