@@ -1,0 +1,113 @@
+package com.example.financeapp.ui.screens
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.financeapp.domain.models.Transaction
+import com.example.financeapp.ui.components.PieSlice
+import com.example.financeapp.ui.components.SimpleBarChart
+import com.example.financeapp.ui.components.SimpleLineChart
+import com.example.financeapp.ui.components.SimplePieChart
+import com.example.financeapp.ui.viewmodels.FinanceViewModel
+
+@Composable
+fun HomeScreen(vm: FinanceViewModel = hiltViewModel()) {
+    val state by vm.uiState.collectAsStateWithLifecycle()
+    var amount by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+
+    val monthlyTotal = state.transactions.sumOf { it.amount }
+    val pieData = generatePieData(state.transactions, state.categories.associate { it.id to it.name })
+
+    Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("This Month: ₹${"%.2f".format(monthlyTotal)}", style = MaterialTheme.typography.titleLarge)
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Amount") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Category") }, modifier = Modifier.weight(1f))
+        }
+        OutlinedTextField(value = note, onValueChange = { note = it }, label = { Text("Note") }, modifier = Modifier.fillMaxWidth())
+
+        Button(onClick = {
+            val parsedAmount = parseAmount(amount)
+            vm.addExpenseWithCategory(parsedAmount, category, note.ifBlank { null })
+            amount = ""
+            category = ""
+            note = ""
+        }) { Text("Add Expense") }
+
+        Button(onClick = vm::fetchSmartSuggestion) { Text("Get Smart Suggestion") }
+
+        val recent = state.transactions.sortedBy { it.date }.takeLast(10)
+        val monthGroups = state.transactions.groupBy { "${it.date.year}-${it.date.monthValue.toString().padStart(2, '0')}" }.toSortedMap()
+
+        SimplePieChart(entries = pieData, title = "Category Distribution")
+        SimpleLineChart(values = recent.map { it.amount }, xLabels = recent.map { "${it.date.monthValue}/${it.date.dayOfMonth}" }, title = "Daily Spending Trend")
+        SimpleBarChart(values = monthGroups.values.map { it.sumOf { txn -> txn.amount } }, xLabels = monthGroups.keys.map { it.takeLast(2) }, title = "Monthly Comparison")
+
+        Text("Insights", style = MaterialTheme.typography.titleMedium)
+        state.insights.forEach { Text("• $it") }
+
+        state.suggestion?.let { s ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(8.dp)) {
+                    Text("Suggested Budget: ₹${"%.2f".format(s.suggestedTotal)}")
+                    s.tips.forEach { Text("- $it") }
+                }
+            }
+        }
+
+        LazyColumn {
+            items(state.transactions) { txn ->
+                val categoryName = state.categories.firstOrNull { it.id == txn.categoryId }?.name ?: "Unknown"
+                Text("$categoryName: ₹${"%.2f".format(txn.amount)}")
+            }
+        }
+    }
+}
+
+private fun generatePieData(transactions: List<Transaction>, categoryNameMap: Map<Long, String>): List<PieSlice> {
+    if (transactions.isEmpty()) return emptyList()
+    return transactions.groupBy { categoryNameMap[it.categoryId] ?: "Unknown" }
+        .map { (categoryName, txns) ->
+            PieSlice(
+                label = categoryName,
+                amount = txns.sumOf { it.amount },
+                color = getColorForCategory(categoryName)
+            )
+        }
+}
+
+private fun getColorForCategory(category: String): Color = when (category.lowercase()) {
+    "education" -> Color(0xFF3F51B5)
+    "health" -> Color(0xFFF44336)
+    "food" -> Color(0xFFFF9800)
+    "savings" -> Color(0xFF4CAF50)
+    "rent" -> Color(0xFF9C27B0)
+    "travel" -> Color(0xFF1565C0)
+    "ride" -> Color(0xFF00BCD4)
+    else -> Color(0xFFFF7043)
+}
+
+private fun parseAmount(raw: String): Double = raw.replace(",", "").trim().toDoubleOrNull() ?: 0.0
