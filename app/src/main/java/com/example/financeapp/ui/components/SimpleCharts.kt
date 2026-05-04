@@ -1,23 +1,24 @@
 package com.example.financeapp.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.sin
 
 private fun DrawScope.drawAxes(leftPad: Float, bottomPad: Float) {
     val axis = Color(0xFF7A7A7A)
@@ -145,52 +146,72 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
     }
 }
 
+data class PieSlice(val label: String, val amount: Double, val color: Color)
+
 @Composable
-fun SimplePieChart(portions: List<Double>, title: String) {
-    if (portions.isEmpty()) {
+fun SimplePieChart(entries: List<PieSlice>, title: String) {
+    val filtered = entries.filter { it.amount > 0 }
+
+    if (filtered.isEmpty()) {
         Text("$title: no data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
-    val total = portions.sum().takeIf { it > 0 } ?: 1.0
-    val colors = listOf(
-        Color(0xFFFF9800),
-        Color(0xFF4CAF50),
-        Color(0xFF2196F3),
-        Color(0xFF9C27B0)
-    )
+    val total = filtered.sumOf { it.amount }
 
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, fontWeight = FontWeight.SemiBold)
 
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-        ) {
-            var start = -90f
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(280.dp)) {
+                val diameter = size.minDimension * 0.8f
+                val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+                val arcSize = Size(diameter, diameter)
+                val center = Offset(size.width / 2f, size.height / 2f)
 
-            portions.forEachIndexed { index, value ->
-                val sweep = ((value / total) * 360f).toFloat()
+                var startAngle = -90f
 
-                drawArc(
-                    color = colors[index % colors.size],
-                    startAngle = start,
-                    sweepAngle = sweep,
-                    useCenter = true,
-                    topLeft = Offset(40f, 10f),
-                    size = Size(size.minDimension - 80f, size.minDimension - 20f)
-                )
+                filtered.forEach { slice ->
+                    val sweep = ((slice.amount / total) * 360f).toFloat()
 
-                start += sweep
+                    drawArc(slice.color, startAngle, sweep, true, topLeft, arcSize)
+
+                    val mid = Math.toRadians((startAngle + sweep / 2f).toDouble())
+                    val labelRadius = diameter * 0.28f
+
+                    val px = center.x + cos(mid).toFloat() * labelRadius
+                    val py = center.y + sin(mid).toFloat() * labelRadius
+
+                    drawContext.canvas.nativeCanvas.drawText(
+                        "${((slice.amount / total) * 100).toInt()}%",
+                        px,
+                        py,
+                        android.graphics.Paint().apply {
+                            color = android.graphics.Color.WHITE
+                            textAlign = android.graphics.Paint.Align.CENTER
+                            textSize = 28f
+                            isFakeBoldText = true
+                            isAntiAlias = true
+                        }
+                    )
+
+                    startAngle += sweep
+                }
             }
+        }
 
-            drawCircle(
-                color = Color.White,
-                radius = (size.minDimension - 80f) * 0.22f,
-                center = Offset(size.width / 2f, (size.minDimension - 20f) / 2f + 10f),
-                style = Fill
-            )
+        filtered.forEach { slice ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(slice.color, CircleShape)
+                )
+                Text("${slice.label}: ₹${"%.2f".format(slice.amount)}")
+            }
         }
     }
 }
