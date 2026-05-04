@@ -1,6 +1,7 @@
 package com.example.financeapp.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -145,51 +146,55 @@ fun SimpleBarChart(values: List<Double>, xLabels: List<String>, title: String) {
     }
 }
 
+data class PieSlice(val label: String, val amount: Double, val color: Color)
+
 @Composable
-fun SimplePieChart(portions: List<Double>, title: String) {
-    if (portions.isEmpty()) {
+fun SimplePieChart(entries: List<PieSlice>, title: String) {
+    val filtered = entries.filter { it.amount > 0 }
+    if (filtered.isEmpty()) {
         Text("$title: no data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
-    val total = portions.sum().takeIf { it > 0 } ?: 1.0
-    val colors = listOf(
-        Color(0xFFFF9800),
-        Color(0xFF4CAF50),
-        Color(0xFF2196F3),
-        Color(0xFF9C27B0)
-    )
+    val total = filtered.sumOf { it.amount }
 
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, fontWeight = FontWeight.SemiBold)
 
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-        ) {
-            var start = -90f
+        Canvas(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+            val diameter = size.minDimension * 0.8f
+            val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+            val arcSize = Size(diameter, diameter)
 
-            portions.forEachIndexed { index, value ->
-                val sweep = ((value / total) * 360f).toFloat()
+            var startAngle = -90f
+
+            filtered.forEach { slice ->
+                val sweep = ((slice.amount / total) * 360f).toFloat()
 
                 drawArc(
-                    color = colors[index % colors.size],
-                    startAngle = start,
+                    color = slice.color,
+                    startAngle = startAngle,
                     sweepAngle = sweep,
                     useCenter = true,
-                    topLeft = Offset(40f, 10f),
-                    size = Size(size.minDimension - 80f, size.minDimension - 20f)
+                    topLeft = topLeft,
+                    size = arcSize
                 )
 
-                start += sweep
+                startAngle += sweep
             }
 
             drawCircle(
                 color = Color.White,
-                radius = (size.minDimension - 80f) * 0.22f,
-                center = Offset(size.width / 2f, (size.minDimension - 20f) / 2f + 10f),
-                style = Fill
+                radius = diameter * 0.22f,
+                center = Offset(size.width / 2f, size.height / 2f)
+            )
+        }
+
+        filtered.forEachIndexed { index, slice ->
+            val pct = (slice.amount / total) * 100
+            Text(
+                "${index + 1}. ${slice.label}: ₹${"%.2f".format(slice.amount)} (${"%.1f".format(pct)}%)",
+                color = slice.color
             )
         }
     }
